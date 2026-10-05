@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<meta http-equiv="refresh" content="60">
+<title>NIFTY Option Engine</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { background:#0b0f17; color:#e2e8f0; font-family:-apple-system,Segoe UI,Roboto,sans-serif;
+          margin:0; padding:12px; }
+  .wrap { max-width:1100px; margin:0 auto; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  h1 { font-size:15px; letter-spacing:2px; color:#64748b; text-transform:uppercase; margin:0; }
+  .live-badge { font-size:12px; color:#22c55e; }
+  .status-banner { background:#ef444422; border:2px solid #ef4444; border-radius:12px;
+        padding:10px 16px; text-align:center; margin-bottom:8px; }
+  .status-text { font-size:20px; font-weight:800; color:#ef4444; }
+  .status-reason { color:#94a3b8; margin-top:2px; font-size:12px; }
+  .trigger-line { color:#cbd5e1; font-size:12px; margin-top:4px; }
+  .spot-row { display:flex; justify-content:center; gap:18px; margin-top:6px;
+               font-size:12px; color:#94a3b8; flex-wrap:wrap; }
+  .spot-row b { color:#e2e8f0; font-size:15px; }
+  .quality-row { display:flex; justify-content:center; gap:32px; margin:8px 0; }
+  .quality-box { text-align:center; }
+  .quality-box .num { font-size:20px; font-weight:800; }
+  .quality-box .lbl { color:#64748b; font-size:11px; letter-spacing:1px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:10px; }
+  @media (min-width: 860px) {
+    .grid { grid-template-columns:repeat(3, 1fr); }
+    .sig-label, .sig-detail { font-size:14.5px; }
+    .row { font-size:15px; }
+  }
+  .card { background:#141b29; border:1px solid #1f2937; border-radius:10px; padding:10px 12px; }
+  .card-title { font-size:10px; letter-spacing:1.2px; color:#64748b; margin-bottom:5px;
+                 display:flex; justify-content:space-between; align-items:center; }
+  .tag-proj { background:#eab30822; color:#eab308; padding:2px 6px; border-radius:6px; font-size:9px; }
+  .tag-live { background:#22c55e22; color:#22c55e; padding:2px 6px; border-radius:6px; font-size:9px; }
+  .row { display:flex; justify-content:space-between; padding:2.5px 0; font-size:13px;
+          border-bottom:1px solid #1a2333; }
+  .row:last-child { border-bottom:none; }
+  .lbl { color:#94a3b8; }
+  .val { font-weight:600; text-align:right; }
+  .val.big { color:#ef4444; font-size:16px; }
+  .trend-val { color:#ef4444; font-weight:700; }
+  .levelmap { display:flex; flex-direction:column; gap:0px; }
+  .lvlrow { display:flex; align-items:center; gap:6px; font-size:12px; color:#94a3b8; padding:1.5px 0; }
+  .lvl-price { width:70px; text-align:right; font-weight:600; }
+  .lvl-dot { color:#475569; }
+  .signals { background:#141b29; border:1px solid #1f2937; border-radius:10px;
+              padding:10px 12px; margin-top:8px; }
+  .sig { display:flex; align-items:center; gap:8px; padding:3px 0; font-size:12.5px;
+          border-bottom:1px solid #1a2333; }
+  .sig:last-child { border-bottom:none; }
+  .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .sig-label { color:#94a3b8; width:135px; flex-shrink:0; }
+  .sig-detail { color:#cbd5e1; }
+  .plan-head { font-size:14px; font-weight:800; margin-bottom:5px; }
+  .check-title { font-size:10px; color:#64748b; letter-spacing:1px; margin:5px 0 3px; }
+  .check-row { display:flex; gap:6px; font-size:12px; padding:1.5px 0; color:#cbd5e1; }
+  .ts { text-align:center; color:#475569; font-size:10px; margin-top:8px; }
+</style></head>
+<body><div class="wrap">
+  <div class="topbar">
+    <h1>NIFTY Option Decision Engine</h1>
+    <span class="live-badge" id="live-badge">🟢 LIVE</span>
+  </div>
+
+  <div class="status-banner">
+    <div class="status-text">NO TRADE</div>
+    <div class="status-reason">Closing volatility window - 15:00 ke baad naya trade nahi</div>
+    <div class="trigger-line">Trigger: NIFTY &lt; 22,564 &nbsp;|&nbsp; Confirmation: candle close + volume surge + retest hold</div>
+    <div class="spot-row">
+      <span>NIFTY <b>22,522.75</b></span>
+      <span>(-98 pts / -0.43% vs PDC)</span>
+      <span>Trend <b class="trend-val">BEARISH</b></span>
+      <span>ADX <b>19.4</b></span>
+      <span>Location <b>BELOW PDL</b></span>
+    </div>
+  </div>
+
+  <div class="quality-row">
+    <div class="quality-box"><div class="num" style="color:#ef4444">7/10</div>
+      <div class="lbl">SETUP QUALITY (WATCH)</div></div>
+    <div class="quality-box"><div class="num" style="color:#ef4444">NO TRADE</div>
+      <div class="lbl">ENTRY STATUS</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">LEVEL MAP</div>
+      <div class="levelmap"><div class="lvlrow" ><span class="lvl-price">22,809</span><span class="lvl-dot">─</span><span class="lvl-name">PDH</span></div><div class="lvlrow" ><span class="lvl-price">22,600</span><span class="lvl-dot">─</span><span class="lvl-name">CALL WALL</span></div><div class="lvlrow" ><span class="lvl-price">22,595</span><span class="lvl-dot">─</span><span class="lvl-name">PDL</span></div><div class="lvlrow" ><span class="lvl-price">22,564</span><span class="lvl-dot">─</span><span class="lvl-name">RESISTANCE</span></div><div class="lvlrow" ><span class="lvl-price">22,532</span><span class="lvl-dot">─</span><span class="lvl-name">VWAP</span></div><div class="lvlrow" style="color:#ef4444;font-weight:800"><span class="lvl-price">22,523</span><span class="lvl-dot">●</span><span class="lvl-name">SPOT</span></div><div class="lvlrow" ><span class="lvl-price">22,500</span><span class="lvl-dot">─</span><span class="lvl-name">PUT SUPPORT</span></div><div class="lvlrow" ><span class="lvl-price">22,494</span><span class="lvl-dot">─</span><span class="lvl-name">SUPPORT</span></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">OPTION CHAIN OI (ATM evidence)</div>
+      <div class="row"><span class="lbl">Call Wall</span><span class="val ">22,600</span></div>
+      <div class="row"><span class="lbl">Put Support</span><span class="val ">22,500</span></div>
+      <div class="row"><span class="lbl">PCR</span><span class="val ">1.08</span></div>
+      <div class="row"><span class="lbl">OI Bias</span><span class="val ">BULLISH ✗</span></div>
+      
+      <div class="row"><span class="lbl">CE @ATM OI</span><span class="val ">109.9L (Δ+41.0L / +59.6%)</span></div>
+      <div class="row"><span class="lbl">PE @ATM OI</span><span class="val ">187.6L (Δ+138.4L / +281.5%)</span></div>
+      <div class="row"><span class="lbl">CE px move</span><span class="val ">-5.6% &rarr; SHORT BUILDUP</span></div>
+      <div class="row"><span class="lbl">PE px move</span><span class="val ">-49.9% &rarr; SHORT BUILDUP</span></div>
+    
+    </div>
+    
+        <div class="card">
+          <div class="card-title">SELECTED STRIKE</div>
+          <div class="row"><span class="lbl">Strike</span><span class="val big">22,500 PE</span></div>
+          <div class="row"><span class="lbl">LTP</span><span class="val ">₹72.2</span></div>
+          <div class="row"><span class="lbl">Delta</span><span class="val ">0.45</span></div>
+          <div class="row"><span class="lbl">Gamma</span><span class="val ">0.0019</span></div><div class="row"><span class="lbl">Theta</span><span class="val ">-41.75</span></div><div class="row"><span class="lbl">Vega</span><span class="val ">4.70</span></div>
+          <div class="row"><span class="lbl">OI / Volume</span><span class="val ">187.6L / 819099K</span></div>
+          <div class="row"><span class="lbl">Spread</span><span class="val ">0.34%</span></div>
+          <div class="row"><span class="lbl">Premium Move</span><span class="val ">₹144&rarr;₹72 (-49.9%)</span></div>
+          <div class="row"><span class="lbl">vs Underlying</span><span class="val ">-98 pts (-0.43%)</span></div>
+        </div>
+    
+        <div class="card">
+          <div class="card-title">ENTRY / SL / TARGETS <span class="tag-proj">PROJECTED</span></div>
+          <div class="row"><span class="lbl">If triggers at</span><span class="val ">22,564</span></div>
+          <div class="row"><span class="lbl">SL (underlying)</span><span class="val ">22,602</span></div>
+          <div class="row"><span class="lbl">Targets</span><span class="val ">22,526 / 22,487 / 22,449</span></div>
+          <div class="row"><span class="lbl">Ref premium (now)</span><span class="val ">₹72.2</span></div>
+          <div class="row"><span class="lbl">Premium SL (proj)</span><span class="val ">₹54.9</span></div>
+          <div class="row"><span class="lbl">Premium Tgt (proj)</span><span class="val ">₹89 / ₹107 / ₹124</span></div>
+          <div class="row"><span class="lbl">R:R</span><span class="val ">1 : 1.0</span></div>
+        </div>
+  </div>
+
+  <div class="signals">
+    <div class="card-title">REASON PANEL (10-point checklist)</div>
+    <div class="sig"><span class="dot" style="background:#22c55e"></span><span class="sig-label">Trend</span><span class="sig-detail">BEARISH | structure LL-LH</span></div><div class="sig"><span class="dot" style="background:#22c55e"></span><span class="sig-label">Market Structure</span><span class="sig-detail">LL-LH</span></div><div class="sig"><span class="dot" style="background:#22c55e"></span><span class="sig-label">VWAP</span><span class="sig-detail">Spot 22519 vs VWAP 22532</span></div><div class="sig"><span class="dot" style="background:#22c55e"></span><span class="sig-label">Option OI</span><span class="sig-detail">Call Wall 22600 | Put Support 22500 | PCR 1.08</span></div><div class="sig"><span class="dot" style="background:#ef4444"></span><span class="sig-label">Change in OI</span><span class="sig-detail">CE: SHORT BUILDUP (px -5.6% / OI +59.6%) | PE: SHORT BUILDUP (px -49.9% / OI +281.5%) -> bias BULLISH</span></div><div class="sig"><span class="dot" style="background:#22c55e"></span><span class="sig-label">Important Level</span><span class="sig-detail">S 22494 / R 22564 | 7 key levels</span></div><div class="sig"><span class="dot" style="background:#22c55e"></span><span class="sig-label">Price Location</span><span class="sig-detail">BELOW PDL (R:+41 / S:+28)</span></div><div class="sig"><span class="dot" style="background:#22c55e"></span><span class="sig-label">Volume/Liquidity</span><span class="sig-detail">22500PE OI 187.6L Vol 819099K Spread 0.34%</span></div><div class="sig"><span class="dot" style="background:#eab308"></span><span class="sig-label">IV</span><span class="sig-detail">18.0% - HIGH IV</span></div><div class="sig"><span class="dot" style="background:#eab308"></span><span class="sig-label">Entry Trigger</span><span class="sig-detail">Pullback 22564 par hold, par volume weak</span></div><div class="sig"><span class="dot" style="background:#ef4444"></span><span class="sig-label">Risk / SL</span><span class="sig-detail">Entry ya strike ready nahi - SL define nahi ho sakta</span></div>
+  </div>
+  <div class="signals" style="margin-top:14px"><div class="card-title">TRADE PLAN</div>
+          <div class="plan-head" style="color:#64748b">🔒 TRADE PLAN LOCKED</div>
+          <div class="lbl" style="margin-bottom:10px">Waiting for confirmation...</div>
+          <div class="check-title">CONFIRMATION</div>
+          <div class="check-row"><span style="color:#22c55e">✓</span> <span>Trend confirmed</span></div><div class="check-row"><span style="color:#22c55e">✓</span> <span>Price location OK</span></div><div class="check-row"><span style="color:#eab308">○</span> <span>Level break/hold</span></div><div class="check-row"><span style="color:#ef4444">✗</span> <span>Breakout volume</span></div><div class="check-row"><span style="color:#22c55e">✓</span> <span>Option liquidity</span></div><div class="check-row"><span style="color:#ef4444">✗</span> <span>OI confirmation</span></div></div>
+  
+
+  <div class="ts">Updated 15:09:57 · auto-refresh every 60s</div>
+</div>
+<script>
+  const startTs = Date.now();
+  setInterval(() => {
+    const sec = Math.floor((Date.now() - startTs) / 1000);
+    const el = document.getElementById('live-badge');
+    if (sec > 90) { el.textContent = `🟠 DATA DELAY • ${sec}s`; el.style.color = '#f97316'; }
+    else { el.textContent = `🟢 LIVE • ${sec}s ago`; el.style.color = '#22c55e'; }
+  }, 1000);
+</script>
+</body></html>
